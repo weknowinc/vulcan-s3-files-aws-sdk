@@ -1,0 +1,18 @@
+# see http://docs.vulcanjs.org/packages
+
+vulcan:core
+
+############ Language Packages ############
+
+vulcan:i18n-en-us
+
+############ Accounts Packages ############
+
+accounts-password@1.5.1
+
+############ Your Packages ############
+
+
+vulcan-s3-files
+tmeasday:check-npm-versions
+ostrio:files
