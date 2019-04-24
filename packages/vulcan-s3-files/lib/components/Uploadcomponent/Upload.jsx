@@ -18,6 +18,7 @@ import _union from 'lodash/union';
 import _map from 'lodash/map';
 import _get from 'lodash/get';
 import _split from 'lodash/split';
+import _isUndefined from 'lodash/isUndefined';
 
 /*
 Dropzone styles
@@ -49,16 +50,16 @@ class Image extends PureComponent {
 
     clearImage(key, e) {
         e.preventDefault();
-        this.props.clearImage(this.props.enableMultiple ? key : this.props.images[key]);
+        this.props.clearImage(key);
     }
 
     render() {
         return (
-            _map(this.props.enableMultiple ? _split(this.props.images[0].imageUrl, ',') : this.props.images, (image, index) => {
+            _map(this.props.images, (image, index) => {
                 return (
                     <div key={index} className={`upload-image`}>
                         <div className="upload-image-contents">
-                            <img style={{width: 150}} src={this.props.enableMultiple ? image : image.imageUrl || image.preview} />
+                            <img style={{width: 150}} src={image.imageUrl || image.preview} />
                         </div>
                         <a href="javascript:void(0)" onClick={this.clearImage.bind(this, index)}>
                             <Components.Icon name="close" /> Remove image
@@ -71,39 +72,45 @@ class Image extends PureComponent {
 }
 
 /*
-Get a Query to consult to graphql
-*/
-const getQuery = imageId => {
-    return gql`
-        {
-            pic(input: {selector: {_id: "${imageId}"}}){
-                result{
-                    _id
-                    body
-                    imageId
-                    imageUrl
-                }
-            }
-        }
-    `;
-};
-
-/*
 File Upload component
 */
-class Upload extends PureComponent {
+class UploadComponent extends PureComponent {
     constructor(props, context) {
         super(props, context);
         this.state = {
-            file: [],
+            filesToSave: [],
             filesToDelete: [],
+            files: [],
+            load: true
         };
 
-        this.context.addToSuccessForm(this.successSubmitCalback)
+        this.props.addToSuccessForm(this.successSubmitCalback)
     }
 
-    componentDidMount() {
+    componentWillReceiveProps(nextProps, nextContext) {
+        if(!_isUndefined(nextProps.pic) && !(_isNull(nextProps.pic.result.imageId) || _isNull(nextProps.pic.result.imageUrl)) && this.state.load){
+            let files = [nextProps.pic.result]
+            if(this.enableMultiple()){
+                let imageId = nextProps.pic.result.imageId
+                let imageUrls = _split(nextProps.pic.result.imageUrl, ',')
 
+                files = _map(imageId, (imageId, index) => {
+                    return {
+                        _id: nextProps.pic.result._id,
+                        body: nextProps.pic.result.body,
+                        imageId: imageId,
+                        imageUrl: imageUrls[index]
+                    }
+                })
+                console.log('files', files)
+            }
+
+
+            this.setState({
+                files: files,
+                load: false
+            })
+        }
     }
 
     /*
@@ -116,7 +123,8 @@ class Upload extends PureComponent {
         }));
 
         this.setState({
-            file: files,
+            filesToSave: files,
+            files: files
         });
     };
 
@@ -132,116 +140,111 @@ class Upload extends PureComponent {
     /*
     Remove the file at `index` (or just r emove file if no index is passed)
     */
-    clearFile = (image) => {
-
+    clearFile = (key) => {
+        let files = this.state.files;
         let imagesIdToUpdate = null
         if(this.props.formType === "edit") {
-            let imageId = this.enableMultiple() ? this.props.document.imageId[image] : image.imageId;
+            let imageId = this.enableMultiple() ? this.props.document.imageId[key] : files[key].imageId;
             this.setState({
                 filesToDelete: _union(this.state.filesToDelete, [imageId]),
             });
 
-            imagesIdToUpdate = this.enableMultiple() ? this.props.document.imageId.filter((id) => this.props.document.imageId[image] != id) : imagesIdToUpdate
+            imagesIdToUpdate = this.enableMultiple() ? this.props.document.imageId.filter((id) => this.props.document.imageId[key] != id) : imagesIdToUpdate
 
         }
 
         this.props.updateCurrentValues({[this.props.name]: imagesIdToUpdate});
-        this.setState({file: []})
-    };
-
-    //Get images, with or without previews/deleted images
-    getImages = (args = {}) => {
-        const {includePreviews = true, includeDeleted = false} = args;
-        let images = this.state.file;
-
-        // if images is an empty string, null, etc. just return an empty array
-        if (!images) {
-            return [];
-        }
-
-        // if images is not array, make it one (for backwards compatibility)
-        if (!Array.isArray(images)) {
-            images = [images];
-        }
-        // remove previews if needed
-        images = includePreviews ? images : images.filter(image => !image.preview);
-        // remove deleted images
-        images = includeDeleted
-            ? images
-            : images.filter((image, index) => !this.isDeleted(index));
-        return images;
+        this.setState({
+            files: files.filter((id) => files[key] != id)
+        })
     };
 
     //Upload image to s3
     successSubmitCalback = (document) => {
         S3Service.deleteFSCollectionFile(this.state.filesToDelete, document)
-        S3Service.updatePicCollection(this.state.file, document, this.enableMultiple())
+        S3Service.updatePicCollection(this.state.filesToSave, document, this.enableMultiple())
     };
 
     render() {
-        const images = this.getImages({includeDeleted: true});
+        const {files} = this.state
 
         return (
             <div
                 className={`form-group row`}>
                 <label className="control-label col-sm-3">{this.props.label}</label>
-                <Query query={getQuery(this.props.document._id)}>
-                    {({ data }) => {
-                        console.log(data)
-                        let pic = data;
-
-                        pic = _isEmpty(pic) || _isNull(this.props.document.imageId)? images : [pic.pic.result]
-
-                        console.log("pic", pic)
-                        return (
-                            <div>
-                                <div className="col-sm-9">
-                                    <div className="upload-field">
-                                        {_isEmpty(pic) ? <Dropzone
-                                            multiple={this.enableMultiple()}
-                                            onDrop={this.onDrop}
-                                            accept="image/*"
-                                            className="dropzone-base"
-                                            activeClassName="dropzone-active"
-                                            rejectClassName="dropzone-reject"
-                                        >
-                                            {({getRootProps, getInputProps, isDragActive, isDragReject}) => {
-                                                let styles = {...baseStyle};
-                                                styles = isDragActive ? {...styles, ...activeStyle} : styles;
-                                                styles = isDragReject ? {...styles, ...rejectStyle} : styles;
-                                                return (
-                                                    <div {...getRootProps()} style={styles}>
-                                                        <input {...getInputProps()} />
-                                                        <div>
-                                                            <FormattedMessage id="upload.prompt" />
-                                                        </div>
-                                                    </div>
-                                                );
-                                            }}
-                                        </Dropzone>: null}
-
-                                        {!_isEmpty(pic) && (
-                                            <div className="upload-state">
-                                                <div className="upload-images">
-                                                    <Image
-                                                        clearImage={this.clearFile}
-                                                        images={pic}
-                                                        enableMultiple={this.enableMultiple()}
-                                                    />
-                                                </div>
+                <div>
+                    <div className="col-sm-9">
+                        <div className="upload-field">
+                            {_isEmpty(files) ? <Dropzone
+                                multiple={this.enableMultiple()}
+                                onDrop={this.onDrop}
+                                accept="image/*"
+                                className="dropzone-base"
+                                activeClassName="dropzone-active"
+                                rejectClassName="dropzone-reject"
+                            >
+                                {({getRootProps, getInputProps, isDragActive, isDragReject}) => {
+                                    let styles = {...baseStyle};
+                                    styles = isDragActive ? {...styles, ...activeStyle} : styles;
+                                    styles = isDragReject ? {...styles, ...rejectStyle} : styles;
+                                    return (
+                                        <div {...getRootProps()} style={styles}>
+                                            <input {...getInputProps()} />
+                                            <div>
+                                                <FormattedMessage id="upload.prompt" />
                                             </div>
-                                        )}
+                                        </div>
+                                    );
+                                }}
+                            </Dropzone>: null}
+
+                            {!_isEmpty(files) && (
+                                <div className="upload-state">
+                                    <div className="upload-images">
+                                        <Image
+                                            clearImage={this.clearFile}
+                                            images={files}
+                                            enableMultiple={this.enableMultiple()}
+                                        />
                                     </div>
                                 </div>
-                            </div>
-                        );
-                    }}
-                </Query>
-
+                            )}
+                        </div>
+                    </div>
+                </div>
             </div>
         );
     }
 }
+
+/*
+Get a Query to consult to graphql
+*/
+const getQuery = imageId => gql`
+    {
+        pic(input: {selector: {_id: "${imageId}"}}){
+            result{
+                _id
+                body
+                imageId
+                imageUrl
+            }
+        }
+    }
+`;
+
+
+const Upload = (props, context) => {
+    return props.formType == "new" ?
+        <UploadComponent {...props} {...context}/>
+        :
+        <Query query={getQuery(props.document._id)}>
+            {({data}) => <UploadComponent {...data} {...props} {...context}/>}
+        </Query>
+}
+
+
+
 
 Upload.contextTypes = {
     updateCurrentValues: PropTypes.func,
