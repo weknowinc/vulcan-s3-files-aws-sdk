@@ -12,7 +12,8 @@ import {
   registerComponent,
   withMessages,
 } from 'meteor/vulcan:core';
-import Pics from "../modules/pics/collection";
+import SinglePic from "../modules/singlePic/collection";
+import MultiplePics from "../modules/multiplePics/collection";
 
 const Home = () => (
   <div className="dashboard">
@@ -29,13 +30,25 @@ const Home = () => (
     </div>
 
     <Components.Datatable
-        collection={Pics}
+        collection={SinglePic}
         columns={['_id', 'imageId', 'body', 'imageUrl']}
-        emptyState={<p className="datatable-empty">No customers to display</p>}
+        emptyState={<p className="datatable-empty">No single pic to display</p>}
         options={{
-            fragmentName: 'PicsFragment',
+            fragmentName: 'SinglePicFragment',
             limit: 20
         }}
+        editFormOptions={{data: 'hola'}}
+    />
+
+    <Components.Datatable
+        collection={MultiplePics}
+        columns={['_id', 'imageId', 'body', 'imageUrl']}
+        emptyState={<p className="datatable-empty">No multiple pics to display</p>}
+        options={{
+            fragmentName: 'MultiplePicsFragment',
+            limit: 20
+        }}
+        editFormOptions={{data: 'hola'}}
     />
   </div>
 );

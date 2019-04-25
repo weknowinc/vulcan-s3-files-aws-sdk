@@ -11,17 +11,17 @@ import './permissions.js';
 
 import { Meteor } from 'meteor/meteor';
 
-const Pics = createCollection({
+const SinglePics = createCollection({
 
-  collectionName: 'Pics',
+  collectionName: 'SinglePics',
 
-  typeName: 'Pic',
+  typeName: 'SinglePic',
 
   schema,
 
-  resolvers: getDefaultResolvers('Pics'),
+  resolvers: getDefaultResolvers('SinglePics'),
 
-  mutations: getDefaultMutations('Pics'),
+  mutations: getDefaultMutations('SinglePics'),
 
 });
 
@@ -33,7 +33,7 @@ Set a default results view whenever the Pics collection is queried:
 
 */
 
-Pics.allow({
+SinglePics.allow({
   update: function(userId) {
     // Make sure the user is logged in before inserting a task
     if (! userId ) {
@@ -45,10 +45,10 @@ Pics.allow({
   }
 });
 
-Pics.addDefaultView(terms => {
+SinglePics.addDefaultView(terms => {
   return {
     options: {sort: {createdAt: -1}}
   };
 });
 
-export default Pics;
+export default SinglePics;

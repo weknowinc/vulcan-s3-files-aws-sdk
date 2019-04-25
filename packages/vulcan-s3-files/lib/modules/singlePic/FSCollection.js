@@ -1,9 +1,9 @@
 import { FilesCollection } from 'meteor/ostrio:files';
 import SimpleSchema from 'simpl-schema';
 import { GraphQLSchema } from 'meteor/vulcan:lib';
-import DataLoader from 'dataloader';
+import DataLoader from 'dataloader/index';
 import stream from 'stream';
-import { getSetting, addGraphQLSchema } from 'meteor/vulcan:core';
+import { getSetting,  } from 'meteor/vulcan:core';
 import S3 from 'aws-sdk/clients/s3'; /* http://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/S3.html */
 /* See fs-extra and graceful-fs NPM packages */
 /* For better i/o performance */
@@ -34,19 +34,19 @@ const s3 = new S3({
 });
 
 
-const Picsfiles = new FilesCollection({
-    collectionName: 'picsfiles',
+const SinglePics = new FilesCollection({
+    collectionName: 'singlePics',
     onAfterUpload(fileRef) {
         // Run through each of the uploaded file
         _each(fileRef.versions, (vRef, version) => {
             // We use Random.id() instead of real file's _id
-            // to secure picsfiles from reverse engineering on the AWS client
-            const filePath = 'picsfiles/' + (Random.id()) + '-' + version + '.' + fileRef.extension;
+            // to secure singlePics from reverse engineering on the AWS client
+            const filePath = 'singlePics/' + (Random.id()) + '-' + version + '.' + fileRef.extension;
 
             // Create the AWS:S3 object.
             // Feel free to change the storage class from, see the documentation,
-            // `STANDARD_IA` is the best deal for low access picsfiles.
-            // Key is the file name we are creating on AWS:S3, so it will be like picsfiles/XXXXXXXXXXXXXXXXX-original.XXXX
+            // `STANDARD_IA` is the best deal for low access singlePics.
+            // Key is the file name we are creating on AWS:S3, so it will be like singlePics/XXXXXXXXXXXXXXXXX-original.XXXX
             // Body is the file stream we are sending to AWS
             s3.putObject({
                 StorageClass: 'STANDARD',
@@ -69,7 +69,7 @@ const Picsfiles = new FilesCollection({
                             if (updError) {
                                 console.error(updError);
                             } else {
-                                // Unlink original picsfiles from FS after successful upload to AWS:S3
+                                // Unlink original singlePics from FS after successful upload to AWS:S3
                                 this.unlink(this.collection.findOne(fileRef._id), version);
                             }
                         });
@@ -147,8 +147,8 @@ const Picsfiles = new FilesCollection({
 });
 
 // Intercept FilesCollection's remove method to remove file from AWS:S3
-const _origRemove = Picsfiles.remove;
-Picsfiles.remove = function (search) {
+const _origRemove = SinglePics.remove;
+SinglePics.remove = function (search) {
     const cursor = this.collection.find(search);
     cursor.forEach((fileRef) => {
         _each(fileRef.versions, (vRef) => {
@@ -172,14 +172,14 @@ Picsfiles.remove = function (search) {
     _origRemove.call(this, search);
 };
 
-Picsfiles.collection.attachSchema(new SimpleSchema(Picsfiles.schema));
+SinglePics.collection.attachSchema(new SimpleSchema(SinglePics.schema));
 
-Picsfiles.loader = new DataLoader(async ids => {
-    const documents = Picsfiles.find({ _id: { $in: ids } }).fetch();
+SinglePics.loader = new DataLoader(async ids => {
+    const documents = SinglePics.find({ _id: { $in: ids } }).fetch();
     return ids.map(id => documents.find(doc => doc._id === id));
 });
 
-GraphQLSchema.addToContext({ ['picsfiles']: Picsfiles });
+GraphQLSchema.addToContext({ ['singlePics']: SinglePics });
 
 
-export default Picsfiles;
+export default SinglePics;

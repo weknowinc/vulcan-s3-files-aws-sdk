@@ -81,6 +81,7 @@ class UploadComponent extends PureComponent {
             filesToSave: [],
             filesToDelete: [],
             files: [],
+            imageId: null,
             load: true
         };
 
@@ -88,26 +89,28 @@ class UploadComponent extends PureComponent {
     }
 
     componentWillReceiveProps(nextProps, nextContext) {
-        if(!_isUndefined(nextProps.pic) && !(_isNull(nextProps.pic.result.imageId) || _isNull(nextProps.pic.result.imageUrl)) && this.state.load){
-            let files = [nextProps.pic.result]
+        let collectionName = nextProps.options.collectionName
+
+        if(!_isUndefined(nextProps[collectionName]) && !(_isNull(nextProps[collectionName].result.imageId) || _isNull(nextProps[collectionName].result.imageUrl)) && this.state.load){
+            let document = nextProps[collectionName].result
+            let files = [document]
+
             if(this.enableMultiple()){
-                let imageId = nextProps.pic.result.imageId
-                let imageUrls = _split(nextProps.pic.result.imageUrl, ',')
+                let imageId = document.imageId
+                let imageUrls = _split(document.imageUrl, ',')
 
                 files = _map(imageId, (imageId, index) => {
                     return {
-                        _id: nextProps.pic.result._id,
-                        body: nextProps.pic.result.body,
+                        _id: document._id,
                         imageId: imageId,
                         imageUrl: imageUrls[index]
                     }
                 })
-                console.log('files', files)
             }
-
 
             this.setState({
                 files: files,
+                imageId: this.enableMultiple() ? document.imageId : [document.imageId],
                 load: false
             })
         }
@@ -123,9 +126,12 @@ class UploadComponent extends PureComponent {
         }));
 
         this.setState({
-            filesToSave: files,
-            files: files
+            filesToSave: _union(files, this.state.filesToSave),
+            files: _union(files, this.state.files)
         });
+
+        this.props.updateCurrentValues({[this.props.name]: this.enableMultiple() ? []: ''});
+
     };
 
     /*
@@ -150,7 +156,6 @@ class UploadComponent extends PureComponent {
             });
 
             imagesIdToUpdate = this.enableMultiple() ? this.props.document.imageId.filter((id) => this.props.document.imageId[key] != id) : imagesIdToUpdate
-
         }
 
         this.props.updateCurrentValues({[this.props.name]: imagesIdToUpdate});
@@ -161,13 +166,14 @@ class UploadComponent extends PureComponent {
 
     //Upload image to s3
     successSubmitCalback = (document) => {
-        S3Service.deleteFSCollectionFile(this.state.filesToDelete, document)
-        S3Service.updatePicCollection(this.state.filesToSave, document, this.enableMultiple())
+        const {filesToDelete, filesToSave, imageId} = this.state
+
+        S3Service.deleteFSCollectionFile(filesToDelete, this.props.options)
+        S3Service.updatePicCollection(filesToSave, filesToDelete, imageId, document, this.props.options, this.enableMultiple())
     };
 
     render() {
         const {files} = this.state
-
         return (
             <div
                 className={`form-group row`}>
@@ -175,7 +181,7 @@ class UploadComponent extends PureComponent {
                 <div>
                     <div className="col-sm-9">
                         <div className="upload-field">
-                            {_isEmpty(files) ? <Dropzone
+                            {this.enableMultiple() || _isEmpty(files) ? <Dropzone
                                 multiple={this.enableMultiple()}
                                 onDrop={this.onDrop}
                                 accept="image/*"
@@ -220,12 +226,11 @@ class UploadComponent extends PureComponent {
 /*
 Get a Query to consult to graphql
 */
-const getQuery = imageId => gql`
+const getQuery = props => gql`
     {
-        pic(input: {selector: {_id: "${imageId}"}}){
+        ${props.options.collectionName}(input: {selector: {_id: "${props.document._id}"}}){
             result{
                 _id
-                body
                 imageId
                 imageUrl
             }
@@ -233,18 +238,14 @@ const getQuery = imageId => gql`
     }
 `;
 
-
 const Upload = (props, context) => {
     return props.formType == "new" ?
         <UploadComponent {...props} {...context}/>
         :
-        <Query query={getQuery(props.document._id)}>
+        <Query query={getQuery(props)}>
             {({data}) => <UploadComponent {...data} {...props} {...context}/>}
         </Query>
 }
-
-
-
 
 Upload.contextTypes = {
     updateCurrentValues: PropTypes.func,

@@ -1,19 +1,18 @@
-import FilesCollection from '../modules/picsfiles/FSCollection';
-import PicCollection from '../modules/pics/collection';
-
 import _isEmpty from 'lodash/isEmpty';
 import _each from 'lodash/each';
+import _includes from 'lodash/includes';
+import _isNull from 'lodash/isNull';
 
 class S3Service {
-    updatePicCollection = (files, document, multiple) => {
+    updatePicCollection = (files, filesToDelete, imageId, document, collections, multiple) => {
 
         if(_isEmpty(files)){
             return
         }
 
-        let filesIdToSave = []
+        let filesIdToSave = _isNull(imageId) ? [] : imageId.filter((id) => !_includes(filesToDelete, id))
         _each(files, (file) => {
-            let resultInsert = FilesCollection.insert({
+            let resultInsert = collections.fsCollection.insert({
                 file: file,
                 streams: 'dynamic',
                 chunkSize: 'dynamic'
@@ -22,7 +21,7 @@ class S3Service {
             filesIdToSave.push(resultInsert.config.fileId)
         });
 
-        PicCollection.update(
+        collections.picCollection.default.update(
             {
                 _id: document._id
             },
@@ -34,14 +33,14 @@ class S3Service {
         );
     }
 
-    deleteFSCollectionFile = (files) => {
+    deleteFSCollectionFile = (files, collections) => {
 
         if(_isEmpty(files)){
             return
         }
 
         _each(files, (fileId) => {
-            FilesCollection.remove({_id: fileId})
+            collections.fsCollection.remove({_id: fileId})
         });
     }
 }

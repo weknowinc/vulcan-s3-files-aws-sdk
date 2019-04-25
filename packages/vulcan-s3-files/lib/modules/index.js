@@ -1,8 +1,8 @@
 import './components.js';
 
-import './pics/collection';
+import './singlePic/collection';
 
-import './picsfiles';
+import './multiplePics/collection';
 
 import './callbacks';
 
