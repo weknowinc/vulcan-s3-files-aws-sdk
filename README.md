@@ -1,6 +1,6 @@
 # Vulcan S3 Files Example
 
-This is an alternative to upload images to amazon s3, based on [Vulcan Files](https://github.com/OrigenStudio/vulcan-files)
+This is an alternative to upload images to amazon s3, based on [Vulcan Files](https://github.com/OrigenStudio/vulcan-files) implmenting the library aws-sdk
 
 The Vulcan Files project is outdated with the current version of Vulcan.js and is not currently working.
 
@@ -45,7 +45,7 @@ meteor npm start
 
 In order to create this implementation function, I have to introduce some changes listed below.
 
-* Implemented the library aws-sdk that enable us to upload files easily, in a collection to save files/images. [See implementation](https://github.com/harold20/example-vulcan-s3-files/blob/master/packages/vulcan-s3-files/lib/modules/singlePic/FSCollection.js#L25)
+* Implemented the library [aws-sdk](https://www.npmjs.com/package/aws-sdk) that enable us to upload files easily, in a collection to save files/images. [See implementation](https://github.com/harold20/example-vulcan-s3-files/blob/master/packages/vulcan-s3-files/lib/modules/singlePic/FSCollection.js#L25)
 * Used the `react-dropzone@8.2.0` version.
 * Used the `react-apollo` on client to make a query if the item is being edited because the fragment doesn't work on editForm [Vulcan Issue](https://github.com/VulcanJS/Vulcan/issues/2277). [See implementation](https://github.com/harold20/example-vulcan-s3-files/blob/master/packages/vulcan-s3-files/lib/components/Uploadcomponent/Upload.jsx#L229)
 * Implemented a callback/listener to s3 files/images collection to delete an imagen when the item is being deleted. [See implementation](https://github.com/harold20/example-vulcan-s3-files/blob/master/packages/vulcan-s3-files/lib/modules/callbacks.js)
