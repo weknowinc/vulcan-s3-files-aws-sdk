@@ -45,13 +45,13 @@ meteor npm start
 
 In order to create this implementation function, I have to introduce some changes listed below.
 
-* Implemented the library aws-sdk that enable us to upload files easily. [See implementation](https://github.com/harold20/example-vulcan-s3-files/blob/master/packages/vulcan-s3-files/lib/modules/singlePic/FSCollection.js#L25)
+* Implemented the library aws-sdk that enable us to upload files easily, in a collection to save files/images. [See implementation](https://github.com/harold20/example-vulcan-s3-files/blob/master/packages/vulcan-s3-files/lib/modules/singlePic/FSCollection.js#L25)
 * Used the `react-dropzone@8.2.0` version.
-* Used the `react-apollo` on client to make a query if the item is being edited because the fragment doesn't work on editForm. [See implementation](https://github.com/harold20/example-vulcan-s3-files/blob/master/packages/vulcan-s3-files/lib/components/Uploadcomponent/Upload.jsx#L229)
-* Implemented a callback to delete an imagen when the item is being deleted. [See implementation](https://github.com/harold20/example-vulcan-s3-files/blob/master/packages/vulcan-s3-files/lib/modules/callbacks.js)
+* Used the `react-apollo` on client to make a query if the item is being edited because the fragment doesn't work on editForm [Vulcan Issue](https://github.com/VulcanJS/Vulcan/issues/2277). [See implementation](https://github.com/harold20/example-vulcan-s3-files/blob/master/packages/vulcan-s3-files/lib/components/Uploadcomponent/Upload.jsx#L229)
+* Implemented a callback/listener to s3 files/images collection to delete an imagen when the item is being deleted. [See implementation](https://github.com/harold20/example-vulcan-s3-files/blob/master/packages/vulcan-s3-files/lib/modules/callbacks.js)
 * Create a FSCollection that implements a collection of `meteor/ostrio:files` to storage the files. [See implementation](https://github.com/harold20/example-vulcan-s3-files/blob/master/packages/vulcan-s3-files/lib/modules/singlePic/FSCollection.js)
 * Create a service that has the methods to upload and delete files when the item is being created or updated. [See implementation](https://github.com/harold20/example-vulcan-s3-files/blob/master/packages/vulcan-s3-files/lib/utils/s3Service.js)
-* Assign by schema the collections to use on upload component as FSCollection and the PicCollection. [See implementation](https://github.com/harold20/example-vulcan-s3-files/blob/master/packages/vulcan-s3-files/lib/modules/singlePic/schema.js#L53)
+* Define the schema that contains the upload with the options property that contains a object with Collection Name, FS Collection and the collection where the document is stored. [See implementation](https://github.com/harold20/example-vulcan-s3-files/blob/master/packages/vulcan-s3-files/lib/modules/singlePic/schema.js#L53)
 * Refactor the upload component to work properly.[See implementation](https://github.com/harold20/example-vulcan-s3-files/blob/master/packages/vulcan-s3-files/lib/components/Uploadcomponent/Upload.jsx)
 
 ### Next steps
