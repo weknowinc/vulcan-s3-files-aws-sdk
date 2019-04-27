@@ -1,6 +1,6 @@
 # Vulcan S3 Files Example
 
-This is an alternative to upload images to amazon s3, based on [Vulcan Files](https://github.com/OrigenStudio/vulcan-files) implmenting the library aws-sdk
+This is an alternative to upload images to amazon s3, based on [Vulcan Files](https://github.com/OrigenStudio/vulcan-files) implmenting the library [aws-sdk](https://www.npmjs.com/package/aws-sdk)
 
 The Vulcan Files project is outdated with the current version of Vulcan.js and is not currently working.
 
