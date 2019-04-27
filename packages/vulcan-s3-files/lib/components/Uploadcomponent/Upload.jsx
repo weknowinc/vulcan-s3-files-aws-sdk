@@ -19,6 +19,7 @@ import _map from 'lodash/map';
 import _get from 'lodash/get';
 import _split from 'lodash/split';
 import _isUndefined from 'lodash/isUndefined';
+import _includes from 'lodash/includes';
 
 /*
 Dropzone styles
@@ -59,7 +60,10 @@ class Image extends PureComponent {
                 return (
                     <div key={index} className={`upload-image`}>
                         <div className="upload-image-contents">
-                            <img style={{width: 150}} src={image.imageUrl || image.preview} />
+                            {_includes(['image/*', '.jpg', '.jpeg', '.png'], this.props.accept) ?
+                                <img style={{width: 150}} src={image.imageUrl || image.preview} />:
+                                <a href={image.imageUrl || image.preview} target={'_blank'}>{image.name || 'file'}</a>
+                            }
                         </div>
                         <a href="javascript:void(0)" onClick={this.clearImage.bind(this, index)}>
                             <Components.Icon name="close" /> Remove image
@@ -90,13 +94,13 @@ class UploadComponent extends PureComponent {
 
     componentWillReceiveProps(nextProps, nextContext) {
         let collectionName = nextProps.options.collectionName
+        let fieldName = nextProps.name
 
-        if(!_isUndefined(nextProps[collectionName]) && !(_isNull(nextProps[collectionName].result.imageId) || _isNull(nextProps[collectionName].result.imageUrl)) && this.state.load){
+        if(!_isUndefined(nextProps[collectionName]) && !(_isNull(nextProps[collectionName].result[fieldName]) || _isNull(nextProps[collectionName].result.imageUrl)) && this.state.load){
             let document = nextProps[collectionName].result
             let files = [document]
-
             if(this.enableMultiple()){
-                let imageId = document.imageId
+                let imageId = document[fieldName]
                 let imageUrls = _split(document.imageUrl, ',')
 
                 files = _map(imageId, (imageId, index) => {
@@ -110,7 +114,7 @@ class UploadComponent extends PureComponent {
 
             this.setState({
                 files: files,
-                imageId: this.enableMultiple() ? document.imageId : [document.imageId],
+                imageId: this.enableMultiple() ? document[fieldName]: [document[fieldName]],
                 load: false
             })
         }
@@ -130,8 +134,7 @@ class UploadComponent extends PureComponent {
             files: _union(files, this.state.files)
         });
 
-        this.props.updateCurrentValues({[this.props.name]: this.enableMultiple() ? []: ''});
-
+        this.props.updateCurrentValues({[this.props.name]: this.enableMultiple() ? [files[0].preview]:files[0].preview});
     };
 
     /*
@@ -150,12 +153,12 @@ class UploadComponent extends PureComponent {
         let files = this.state.files;
         let imagesIdToUpdate = null
         if(this.props.formType === "edit") {
-            let imageId = this.enableMultiple() ? this.props.document.imageId[key] : files[key].imageId;
+            let imageId = this.enableMultiple() ? this.props.document[this.props.name][key] : files[key][this.props.name];
             this.setState({
                 filesToDelete: _union(this.state.filesToDelete, [imageId]),
             });
 
-            imagesIdToUpdate = this.enableMultiple() ? this.props.document.imageId.filter((id) => this.props.document.imageId[key] != id) : imagesIdToUpdate
+            imagesIdToUpdate = this.enableMultiple() ? this.props.document[this.props.name].filter((id) => this.props.document[this.props.name][key] != id) : imagesIdToUpdate
         }
 
         this.props.updateCurrentValues({[this.props.name]: imagesIdToUpdate});
@@ -169,11 +172,11 @@ class UploadComponent extends PureComponent {
         const {filesToDelete, filesToSave, imageId} = this.state
 
         S3Service.deleteFSCollectionFile(filesToDelete, this.props.options)
-        S3Service.updatePicCollection(filesToSave, filesToDelete, imageId, document, this.props.options, this.enableMultiple())
+        S3Service.updatePicCollection(filesToSave, filesToDelete, imageId, document, this.props, this.enableMultiple())
     };
 
     render() {
-        const {files} = this.state
+        const {files} = this.state;
         return (
             <div
                 className={`form-group row`}>
@@ -184,7 +187,7 @@ class UploadComponent extends PureComponent {
                             {this.enableMultiple() || _isEmpty(files) ? <Dropzone
                                 multiple={this.enableMultiple()}
                                 onDrop={this.onDrop}
-                                accept="image/*"
+                                accept={this.props.options.accept}
                                 className="dropzone-base"
                                 activeClassName="dropzone-active"
                                 rejectClassName="dropzone-reject"
@@ -211,6 +214,7 @@ class UploadComponent extends PureComponent {
                                             clearImage={this.clearFile}
                                             images={files}
                                             enableMultiple={this.enableMultiple()}
+                                            accept={this.props.options.accept}
                                         />
                                     </div>
                                 </div>
@@ -231,7 +235,7 @@ const getQuery = props => gql`
         ${props.options.collectionName}(input: {selector: {_id: "${props.document._id}"}}){
             result{
                 _id
-                imageId
+                ${props.name}
                 imageUrl
             }
         }

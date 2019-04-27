@@ -4,7 +4,7 @@ import _includes from 'lodash/includes';
 import _isNull from 'lodash/isNull';
 
 class S3Service {
-    updatePicCollection = (files, filesToDelete, imageId, document, collections, multiple) => {
+    updatePicCollection = (files, filesToDelete, imageId, document, props, multiple) => {
 
         if(_isEmpty(files)){
             return
@@ -12,7 +12,7 @@ class S3Service {
 
         let filesIdToSave = _isNull(imageId) ? [] : imageId.filter((id) => !_includes(filesToDelete, id))
         _each(files, (file) => {
-            let resultInsert = collections.fsCollection.insert({
+            let resultInsert = props.options.fsCollection.insert({
                 file: file,
                 streams: 'dynamic',
                 chunkSize: 'dynamic'
@@ -21,13 +21,13 @@ class S3Service {
             filesIdToSave.push(resultInsert.config.fileId)
         });
 
-        collections.picCollection.default.update(
+        props.options.picCollection.default.update(
             {
                 _id: document._id
             },
             {
                 $set: {
-                    "imageId": multiple ? filesIdToSave : filesIdToSave[0],
+                    [props.name]: multiple ? filesIdToSave : filesIdToSave[0],
                 }
             }
         );

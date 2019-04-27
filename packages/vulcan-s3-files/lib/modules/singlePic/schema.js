@@ -50,7 +50,7 @@ const schema = {
     canUpdate: ['members'],
     canCreate: ['members'],
     control: 'Upload',
-    options: {collectionName: 'singlePic', picCollection: singlePicCollection, fsCollection: fsCollection},
+    options: {collectionName: 'singlePic', picCollection: singlePicCollection, fsCollection: fsCollection, accept:"image/*"},
     resolveAs: {
       fieldName: 'imageUrl',
       type: 'String',
